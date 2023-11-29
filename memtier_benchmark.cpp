@@ -56,6 +56,8 @@
 
 #include <cstring>
 #include <stdexcept>
+#include <mutex>
+#include <condition_variable>
 
 #include "client.h"
 #include "JSON_handler.h"
@@ -1078,6 +1080,9 @@ void usage() {
 
 static void* cg_thread_start(void *t);
 
+std::mutex cv_m;
+std::condition_variable cv;
+int readied = 0;
 struct cg_thread {
     unsigned int m_thread_id;
     benchmark_config* m_config;
@@ -1094,6 +1099,7 @@ struct cg_thread {
         assert(m_protocol != NULL);
 
         m_cg = new client_group(m_config, m_protocol, m_obj_gen);
+        start();
     }
 
     ~cg_thread()
@@ -1132,6 +1138,17 @@ struct cg_thread {
 static void* cg_thread_start(void *t)
 {
     cg_thread* thread = (cg_thread*) t;
+    if (thread->prepare() < 0) {
+        benchmark_error_log("error: failed to prepare thread %u for test.\n",
+                            thread->m_thread_id);
+        exit(1);
+    }
+    {
+        std::unique_lock<std::mutex> lk(cv_m);
+        ++readied;
+        cv.notify_all();
+        cv.wait(lk, [&]{return readied == thread->m_config->threads;});
+    }
     thread->m_cg->run();
     thread->m_finished = true;
 
@@ -1161,19 +1178,14 @@ run_stats run_benchmark(int run_id, benchmark_config* cfg, object_generator* obj
     for (unsigned int i = 0; i < cfg->threads; i++) {
         cg_thread* t = new cg_thread(i, cfg, obj_gen);
         assert(t != NULL);
-
-        if (t->prepare() < 0) {
-            benchmark_error_log("error: failed to prepare thread %u for test.\n", i);
-            exit(1);
-        }
         threads.push_back(t);
     }
 
+    std::unique_lock<std::mutex> lk(cv_m);
+    cv.wait(lk, [&]{return readied == cfg->threads;});
+    lk.unlock();
     // launch threads
     fprintf(stderr, "[RUN #%u] Launching threads now...\n", run_id);
-    for (std::vector<cg_thread*>::iterator i = threads.begin(); i != threads.end(); i++) {
-        (*i)->start();
-    }
 
     unsigned long int prev_ops = 0;
     unsigned long int prev_bytes = 0;
@@ -1239,7 +1251,7 @@ run_stats run_benchmark(int run_id, benchmark_config* cfg, object_generator* obj
         else
             progress = 100.0 * (duration / 1000000.0)/cfg->test_time;
 
-        fprintf(stderr, "[RUN #%u %.0f%%, %3u secs] %2u threads: %11lu ops, %7lu (avg: %7lu) ops/sec, %s/sec (avg: %s/sec), %5.2f (avg: %5.2f) msec latency\r",
+        fprintf(stderr, "[RUN #%u %.0f%%, %3u secs] %2u threads: %11lu ops, %7lu (avg: %7lu) ops/sec, %s/sec (avg: %s/sec), %5.2f (avg: %5.2f) msec latency\n",
             run_id, progress, (unsigned int) (duration / 1000000), active_threads, total_ops, cur_ops_sec, ops_sec, cur_bytes_str, bytes_str, cur_latency, avg_latency);
     } while (active_threads > 0);
 
