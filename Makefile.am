@@ -26,6 +26,7 @@ completions_DATA=bash-completion/memtier_benchmark
 
 memtier_benchmark_CPPFLAGS = \
 	$(CODE_COVERAGE_CFLAGS) \
+	$(CXXFLAGS) \
 	$(LIBEVENT_CFLAGS) \
 	$(LIBEVENT_OPENSSL_CFLAGS) \
 	$(LIBCRYPTO_CFLAGS) \
@@ -56,7 +57,7 @@ memtier_benchmark_LDADD = \
 
 
 @CODE_COVERAGE_RULES@
-memtier_benchmark_LDFLAGS = $(CODE_COVERAGE_LDFLAGS)
+memtier_benchmark_LDFLAGS = $(CODE_COVERAGE_LDFLAGS) -all-static
 
 dist_man1_MANS = memtier_benchmark.1
 
