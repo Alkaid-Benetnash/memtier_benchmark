@@ -174,7 +174,9 @@ void run_stats::roll_cur_stats(struct timeval* ts)
 
 void run_stats::update_get_op(struct timeval* ts, unsigned int bytes, unsigned int latency, unsigned int hits, unsigned int misses)
 {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
+
     m_cur_stats.m_get_cmd.update_op(bytes, latency, hits, misses);
     m_totals.update_op(bytes, latency);
     hdr_record_value(m_get_latency_histogram,latency);
@@ -183,6 +185,7 @@ void run_stats::update_get_op(struct timeval* ts, unsigned int bytes, unsigned i
 
 void run_stats::update_set_op(struct timeval* ts, unsigned int bytes, unsigned int latency)
 {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_set_cmd.update_op(bytes, latency);
@@ -193,6 +196,7 @@ void run_stats::update_set_op(struct timeval* ts, unsigned int bytes, unsigned i
 
 void run_stats::update_moved_get_op(struct timeval* ts, unsigned int bytes, unsigned int latency)
 {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_get_cmd.update_moved_op(bytes, latency);
@@ -203,6 +207,7 @@ void run_stats::update_moved_get_op(struct timeval* ts, unsigned int bytes, unsi
 
 void run_stats::update_moved_set_op(struct timeval* ts, unsigned int bytes, unsigned int latency)
 {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_set_cmd.update_moved_op(bytes, latency);
@@ -213,6 +218,7 @@ void run_stats::update_moved_set_op(struct timeval* ts, unsigned int bytes, unsi
 
 void run_stats::update_moved_arbitrary_op(struct timeval *ts, unsigned int bytes,
                                     unsigned int latency, size_t request_index) {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_ar_commands.at(request_index).update_moved_op(bytes, latency);
@@ -224,6 +230,7 @@ void run_stats::update_moved_arbitrary_op(struct timeval *ts, unsigned int bytes
 
 void run_stats::update_ask_get_op(struct timeval* ts, unsigned int bytes, unsigned int latency)
 {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_get_cmd.update_ask_op(bytes, latency);
@@ -234,6 +241,7 @@ void run_stats::update_ask_get_op(struct timeval* ts, unsigned int bytes, unsign
 
 void run_stats::update_ask_set_op(struct timeval* ts, unsigned int bytes, unsigned int latency)
 {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_set_cmd.update_ask_op(bytes, latency);
@@ -244,6 +252,7 @@ void run_stats::update_ask_set_op(struct timeval* ts, unsigned int bytes, unsign
 
 void run_stats::update_ask_arbitrary_op(struct timeval *ts, unsigned int bytes,
                                           unsigned int latency, size_t request_index) {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_ar_commands.at(request_index).update_ask_op(bytes, latency);
@@ -255,6 +264,7 @@ void run_stats::update_ask_arbitrary_op(struct timeval *ts, unsigned int bytes,
 
 void run_stats::update_wait_op(struct timeval *ts, unsigned int latency)
 {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_wait_cmd.update_op(0, latency);
@@ -265,6 +275,7 @@ void run_stats::update_wait_op(struct timeval *ts, unsigned int latency)
 
 void run_stats::update_arbitrary_op(struct timeval *ts, unsigned int bytes,
                                     unsigned int latency, size_t request_index) {
+    if (!is_collecting_metrics()) return;
     roll_cur_stats(ts);
 
     m_cur_stats.m_ar_commands.at(request_index).update_op(bytes, latency);
@@ -290,6 +301,15 @@ unsigned long int run_stats::get_duration_usec(void)
     } else {
         return ts_diff_now(m_start_time);
     }
+}
+
+unsigned int run_stats::elapsed_since_start_sec()
+{
+    if (!timerisset(&m_start_time)) return 0;
+
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return now.tv_sec - m_start_time.tv_sec;
 }
 
 unsigned long int run_stats::get_total_bytes(void)

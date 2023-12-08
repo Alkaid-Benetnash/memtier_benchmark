@@ -185,9 +185,15 @@ public:
 
     unsigned int get_duration(void);
     unsigned long int get_duration_usec(void);
+    unsigned int elapsed_since_start_sec(void);
     unsigned long int get_total_bytes(void);
     unsigned long int get_total_ops(void);
     unsigned long int get_total_latency(void);
+
+    bool is_collecting_metrics() const {
+        return timerisset(&m_start_time) && !timerisset(&m_end_time);
+        //return (m_start_time.tv_sec > 0) && (m_end_time.tv_sec == 0);
+    }
 };
 
 #endif //MEMTIER_BENCHMARK_RUN_STATS_H

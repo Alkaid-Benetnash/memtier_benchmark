@@ -210,7 +210,8 @@ bool client::finished(void)
 {
     if (m_config->requests > 0 && m_reqs_processed >= m_config->requests)
         return true;
-    if (m_config->test_time > 0 && m_stats.get_duration() >= m_config->test_time)
+    if (m_config->test_time > 0 &&
+        m_stats.elapsed_since_start_sec() >= m_config->test_time + m_config->cooldown_sec)
         return true;
     return false;
 }

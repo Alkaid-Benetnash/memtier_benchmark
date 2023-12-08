@@ -70,6 +70,8 @@ struct benchmark_config {
     unsigned int clients;
     unsigned int threads;
     unsigned int test_time;
+    unsigned int warmup_sec;
+    unsigned int cooldown_sec;
     config_ratio ratio;
     unsigned int pipeline;
     unsigned int data_size;

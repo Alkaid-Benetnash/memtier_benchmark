@@ -25,6 +25,7 @@ public:
     virtual void inc_reqs_processed(void) = 0;
     virtual unsigned long long get_reqs_generated(void) = 0;
     virtual void inc_reqs_generated(void) = 0;
+
     virtual bool finished(void) = 0;
 
     virtual void set_start_time(void) = 0;

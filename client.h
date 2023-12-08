@@ -121,6 +121,7 @@ public:
 
     virtual void handle_response(unsigned int conn_id, struct timeval timestamp,
                                  request *request, protocol_response *response);
+
     virtual bool finished(void);
     virtual void set_start_time();
     virtual void set_end_time();

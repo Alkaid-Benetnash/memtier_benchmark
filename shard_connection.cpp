@@ -485,14 +485,21 @@ void shard_connection::process_response(void)
     }
 
     fill_pipeline();
-
-    if (m_conns_manager->finished()) {
-        m_conns_manager->set_end_time();
-    }
 }
 
 void shard_connection::process_first_request() {
-    m_conns_manager->set_start_time();
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
+    metrics_start_time = now;
+    metrics_start_time.tv_sec += m_config->warmup_sec;
+
+    metrics_end_time = now;
+    metrics_end_time.tv_sec += m_config->warmup_sec + m_config->test_time;
+    m_state = run_warmup;
+
+    // benchmark_error_log("m_id %lu scheduled to start metrics at %ld.%ld\n", m_id, metrics_start_time.tv_sec, metrics_start_time.tv_usec);
+
     fill_pipeline();
 }
 
@@ -532,6 +539,17 @@ void shard_connection::fill_pipeline(void)
                 event_del(m_event_timer);
             }
         }
+    }
+
+    if ((m_state == run_warmup) && timercmp(&now, &metrics_start_time, >)) {
+        // benchmark_error_log("m_id %lu metrics started at %ld.%ld\n", m_id, now.tv_sec, now.tv_usec);
+        m_conns_manager->set_start_time();
+        m_state = run_normal;
+    }
+    if ((m_state == run_normal) && timercmp(&now, &metrics_end_time, >)) {
+        // benchmark_error_log("metrics stopped\n");
+        m_conns_manager->set_end_time();
+        m_state = run_cooldown;
     }
 }
 
