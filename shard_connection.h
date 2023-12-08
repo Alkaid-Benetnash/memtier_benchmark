@@ -176,6 +176,11 @@ private:
     enum setup_state m_authentication;
     enum setup_state m_db_selection;
     enum setup_state m_cluster_slots;
+
+    struct timeval metrics_start_time;
+    struct timeval metrics_end_time;
+    enum run_state { run_warmup, run_normal, run_cooldown };
+    enum run_state m_state;
 };
 
 #endif //MEMTIER_BENCHMARK_SHARD_CONNECTION_H

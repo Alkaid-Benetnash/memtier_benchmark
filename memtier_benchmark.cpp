@@ -134,6 +134,8 @@ static void config_print(FILE *file, struct benchmark_config *cfg)
         "clients = %u\n"
         "threads = %u\n"
         "test_time = %u\n"
+        "warmup_sec = %u\n"
+        "cooldown_sec = %u\n"
         "ratio = %u:%u\n"
         "pipeline = %u\n"
         "data_size = %u\n"
@@ -185,6 +187,8 @@ static void config_print(FILE *file, struct benchmark_config *cfg)
         cfg->clients,
         cfg->threads,
         cfg->test_time,
+        cfg->warmup_sec,
+        cfg->cooldown_sec,
         cfg->ratio.a, cfg->ratio.b,
         cfg->pipeline,
         cfg->data_size,
@@ -244,6 +248,8 @@ static void config_print_to_json(json_handler * jsonhandler, struct benchmark_co
     jsonhandler->write_obj("clients"           ,"%u",          	cfg->clients);
     jsonhandler->write_obj("threads"           ,"%u",          	cfg->threads);
     jsonhandler->write_obj("test_time"         ,"%u",          	cfg->test_time);
+    jsonhandler->write_obj("warmup_sec"         ,"%u",         	cfg->warmup_sec);
+    jsonhandler->write_obj("cooldown_sec"       ,"%u",         	cfg->cooldown_sec);
     jsonhandler->write_obj("ratio"             ,"\"%u:%u\"",   	cfg->ratio.a, cfg->ratio.b);
     jsonhandler->write_obj("pipeline"          ,"%u",          	cfg->pipeline);
     jsonhandler->write_obj("data_size"         ,"%u",          	cfg->data_size);
@@ -389,6 +395,8 @@ static int config_parse_args(int argc, char *argv[], struct benchmark_config *cf
 {
     enum extended_options {
         o_test_time = 128,
+        o_warmup_sec,
+        o_cooldown_sec,
         o_ratio,
         o_pipeline,
         o_data_size_range,
@@ -468,6 +476,8 @@ static int config_parse_args(int argc, char *argv[], struct benchmark_config *cf
         { "clients",                    1, 0, 'c' },
         { "threads",                    1, 0, 't' },
         { "test-time",                  1, 0, o_test_time },
+        { "warmup-sec",                 1, 0, o_warmup_sec },
+        { "cooldown-sec",               1, 0, o_cooldown_sec },
         { "ratio",                      1, 0, o_ratio },
         { "pipeline",                   1, 0, o_pipeline },
         { "data-size",                  1, 0, 'd' },
@@ -642,6 +652,22 @@ static int config_parse_args(int argc, char *argv[], struct benchmark_config *cf
                     }
                     if (cfg->requests) {
                         fprintf(stderr, "error: --test-time and --requests are mutually exclusive.\n");
+                        return -1;
+                    }
+                    break;
+                case o_warmup_sec:
+                    endptr = NULL;
+                    cfg->warmup_sec = (unsigned int) strtoul(optarg, &endptr, 10);
+                    if (!endptr || *endptr != '\0') {
+                        fprintf(stderr, "error: warmup_sec arg parse error.\n");
+                        return -1;
+                    }
+                    break;
+                case o_cooldown_sec:
+                    endptr = NULL;
+                    cfg->cooldown_sec = (unsigned int) strtoul(optarg, &endptr, 10);
+                    if (!endptr || *endptr != '\0') {
+                        fprintf(stderr, "error: cooldown_sec arg parse error.\n");
                         return -1;
                     }
                     break;
@@ -1007,6 +1033,8 @@ void usage() {
             "  -c, --clients=NUMBER           Number of clients per thread (default: 50)\n"
             "  -t, --threads=NUMBER           Number of threads (default: 4)\n"
             "      --test-time=SECS           Number of seconds to run the test\n"
+            "      --warmup-sec=SECS          Number of seconds to ignore statistics after the test starts\n"
+            "      --cooldown-sec=SECS        Number of seconds to ignore statistics before the test ends\n"
             "      --ratio=RATIO              Set:Get ratio (default: 1:10)\n"
             "      --pipeline=NUMBER          Number of concurrent pipelined requests (default: 1)\n"
             "      --reconnect-interval=NUM   Number of requests after which re-connection is performed\n"
